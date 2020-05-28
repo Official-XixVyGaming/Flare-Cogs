@@ -204,16 +204,17 @@ class Userinfo(commands.Cog):
                         inline=True,
                     )
             if ctx.guild.get_member(172002275412279296) is not None:
-                async with self.session.get(
-                    f"https://api.tatsumaki.xyz/users/{user.id}", headers=self.headers
-                ) as r:
-                    if r.status == 200:
-                        resp = await r.json()
-                        data.add_field(
-                            name="Tatsumaki Information",
-                            value=f"**Level**: {resp['level']}\n**XP**: {resp['xp'][0]}/{resp['xp'][1]}\n**Rep**: {resp['reputation']}",
-                            inline=True,
-                        )
+                if self.headers.get("Authorization", None) is not None:
+                    async with self.session.get(
+                        f"https://api.tatsumaki.xyz/users/{user.id}", headers=self.headers
+                    ) as r:
+                        if r.status == 200:
+                            resp = await r.json()
+                            data.add_field(
+                                name="Tatsumaki Information",
+                                value=f"**Level**: {resp['level']}\n**XP**: {resp['xp'][0]}/{resp['xp'][1]}\n**Rep**: {resp['reputation']}",
+                                inline=True,
+                            )
             # if ctx.guild.get_member(159985870458322944) is not None:
             #     async with self.session.get(f"https://mee6.xyz/api/plugins/levels/leaderboard/{ctx.guild.id}?page=0&limit=999") as r:
             #         if r.status == 200:
