@@ -1,6 +1,6 @@
 {
     "author": ["flare(flare#0001)"],
-    "install_msg": "Userinfo with badges. If you wish for the badge emojis to work, you must have you bot added to the friends of Martine server. You can request it to be added here: https://discord.gg/eKxTEsF",
+    "install_msg": "Userinfo with badges. This is an experimental branch which isn't really meant to be used. But you do you.",
     "name": "Userinfo",
     "hidden": false,
     "short": "Userinfo with user badges.",
