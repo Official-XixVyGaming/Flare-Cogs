@@ -7,9 +7,15 @@ from redbot.core.utils.common_filters import (
     filter_invites,
     filter_various_mentions,
 )
+import aiohttp
 from redbot.core.utils import AsyncIter
 
 from .flags import discord_py, EMOJIS
+
+from motor.motor_asyncio import AsyncIOMotorClient
+
+client = AsyncIOMotorClient()
+db = client["leveler"]
 
 log = logging.getLogger("red.flare.userinfo")
 
@@ -26,6 +32,17 @@ class Userinfo(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
+        self.session = aiohttp.ClientSession()
+        self.headers = {}
+
+    async def initalize(self):
+        token = await self.bot.get_shared_api_tokens("tatsumaki")
+        self.headers = {"authorization": token.get("authorization", None)}
+
+    @commands.Cog.listener()
+    async def on_red_api_tokens_update(self, service_name, api_tokens):
+        if service_name == "tatsumaki":
+            self.headers = {"Authorization": api_tokens.get("authorization", None)}
 
     def cog_unload(self):
         # Remove command logic are from: https://github.com/mikeshardmind/SinbadCogs/tree/v3/messagebox
@@ -36,6 +53,7 @@ class Userinfo(commands.Cog):
             except Exception as error:
                 log.info(error)
             self.bot.add_command(_old_userinfo)
+        self.bot.loop.create_task(self.session.close())
 
     @commands.command()
     @commands.guild_only()
@@ -174,7 +192,34 @@ class Userinfo(commands.Cog):
             else:
                 badges += f"\N{BLACK QUESTION MARK ORNAMENT}\N{VARIATION SELECTOR-16} {badge.replace('_', ' ').title()}\n"
         if badges:
-            data.add_field(name="Badges", value=badges)
+            data.add_field(name="Badges", value=badges, inline=False)
+        if ctx.guild:
+            if "Leveler" in self.bot.cogs:
+                userinfo = await db.users.find_one({"user_id": str(user.id)})
+                if str(ctx.guild.id) in userinfo["servers"]:
+                    udata = userinfo["servers"][str(ctx.guild.id)]
+                    data.add_field(
+                        name=f"{ctx.me.name} Leveler",
+                        value=f"**Level**: {udata['level']}\n**XP**: {udata['current_exp']}",
+                        inline=True,
+                    )
+            if ctx.guild.get_member(172002275412279296) is not None:
+                async with self.session.get(
+                    f"https://api.tatsumaki.xyz/users/{user.id}", headers=self.headers
+                ) as r:
+                    if r.status == 200:
+                        resp = await r.json()
+                        data.add_field(
+                            name="Tatsumaki Information",
+                            value=f"**Level**: {resp['level']}\n**XP**: {resp['xp'][0]}/{resp['xp'][1]}\n**Rep**: {resp['reputation']}",
+                            inline=True,
+                        )
+            # if ctx.guild.get_member(159985870458322944) is not None:
+            #     async with self.session.get(f"https://mee6.xyz/api/plugins/levels/leaderboard/{ctx.guild.id}?page=0&limit=999") as r:
+            #         if r.status == 200:
+            #             resp = await r.json()
+            #             user = next((index for (index, d) in enumerate(resp["players"]) if d["id"] == f"{user.id}"), None)
+            #             data.add_field(name="Mee6 Information", value=f"**Level**: {resp['level']}\n**XP**: {resp['xp'][0]}/{resp['xp'][1]}\n**Rep**: {resp['reputation']}")
         await ctx.send(embed=data)
 
 
@@ -184,7 +229,7 @@ except ImportError:
     CogLoadError = RuntimeError
 
 
-def setup(bot):
+async def setup(bot):
     uinfo = Userinfo(bot)
     if "Mod" not in bot.cogs:
         raise CogLoadError("This cog requires the Mod cog to be loaded.")
@@ -192,4 +237,5 @@ def setup(bot):
     _old_userinfo = bot.get_command("userinfo")
     if _old_userinfo:
         bot.remove_command(_old_userinfo.name)
+    await uinfo.initalize()
     bot.add_cog(uinfo)
