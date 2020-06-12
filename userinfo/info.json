@@ -1,6 +1,6 @@
 {
     "author": ["flare(flare#0001)"],
-    "install_msg": "Userinfo with badges. This is an experimental branch which isn't really meant to be used. But you do you.",
+    "install_msg": "Userinfo with badges. This is an experimental branch which isn't really meant to be used. But you do you. Requires d.py 1.4, have fun",
     "name": "Userinfo",
     "hidden": false,
     "short": "Userinfo with user badges.",
